@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 
 async function generateQRCode() {
-  const url = 'https://qr-form-sigma.vercel.app/'
+  const url = 'https://qr-form-app.vercel.app/'
   
   try {
     // Generate QR code as PNG
