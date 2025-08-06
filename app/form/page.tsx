@@ -238,9 +238,16 @@ export default function FormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: 'url(/facewashing.png)' }}
+      />
+      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+      
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-cream-200">
+      <header className="relative z-10 bg-white/90 backdrop-blur-md shadow-sm border-b border-cream-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-4 h-4" />
@@ -256,7 +263,7 @@ export default function FormPage() {
       </header>
 
       {/* Form Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
             <motion.div

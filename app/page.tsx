@@ -103,14 +103,14 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.2 }}
-            className="mb-8"
+            className="mt-8 sm:mt-12 flex justify-center"
           >
             <button
               onClick={() => setIsAboutModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-white/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-white/90"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white/60 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:bg-white/80"
             >
-              <Info className="w-4 h-4" />
-              About This App
+              <Info className="w-3 h-3" />
+              About
             </button>
           </motion.div>
 
