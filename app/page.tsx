@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight, QrCode } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function LandingPage() {
   return (
@@ -65,7 +66,14 @@ export default function LandingPage() {
             className="mb-12"
           >
             <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-2xl shadow-lg p-4 mb-4">
-              <QrCode className="w-24 h-24 text-gray-800" />
+              <Image
+                src="/qr-code.png"
+                alt="QR Code to share your experience"
+                width={96}
+                height={96}
+                className="w-24 h-24"
+                priority
+              />
             </div>
             <p className="text-sm text-gray-600">Scan to share your experience</p>
           </motion.div>
