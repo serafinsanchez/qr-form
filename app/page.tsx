@@ -87,6 +87,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.0 }}
+            className="mb-16 sm:mb-20"
           >
             <Link
               href="/form"
@@ -97,37 +98,37 @@ export default function LandingPage() {
             </Link>
           </motion.div>
 
+          {/* About This App Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.2 }}
+            className="mb-8"
+          >
+            <button
+              onClick={() => setIsAboutModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-white/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-white/90"
+            >
+              <Info className="w-4 h-4" />
+              About This App
+            </button>
+          </motion.div>
+
           {/* Decorative Elements */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 1.2 }}
+            transition={{ duration: 1, delay: 1.4 }}
             className="absolute top-10 left-10 w-20 h-20 border border-gold-300 rounded-full opacity-30"
           />
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 1.4 }}
+            transition={{ duration: 1, delay: 1.6 }}
             className="absolute bottom-10 right-10 w-16 h-16 border border-primary-300 rounded-full opacity-30"
           />
         </motion.div>
       </div>
-
-      {/* About This App Button */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 1.6 }}
-        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20"
-      >
-        <button
-          onClick={() => setIsAboutModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-white/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-white/90"
-        >
-          <Info className="w-4 h-4" />
-          About This App
-        </button>
-      </motion.div>
 
       {/* About Modal */}
       <AboutModal 
