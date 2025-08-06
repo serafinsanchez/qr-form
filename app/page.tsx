@@ -1,11 +1,15 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Info } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState } from 'react'
+import AboutModal from '@/components/AboutModal'
 
 export default function LandingPage() {
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background Video/Image */}
@@ -108,6 +112,28 @@ export default function LandingPage() {
           />
         </motion.div>
       </div>
+
+      {/* About This App Button */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 1.6 }}
+        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20"
+      >
+        <button
+          onClick={() => setIsAboutModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-white/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-white/90"
+        >
+          <Info className="w-4 h-4" />
+          About This App
+        </button>
+      </motion.div>
+
+      {/* About Modal */}
+      <AboutModal 
+        isOpen={isAboutModalOpen} 
+        onClose={() => setIsAboutModalOpen(false)} 
+      />
     </div>
   )
 } 
