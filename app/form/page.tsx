@@ -11,13 +11,16 @@ import { PURCHASE_LOCATIONS, SKIN_CONCERNS } from '@/lib/types'
 import NPSScale from '@/components/NPSScale'
 import FormQuestion from '@/components/FormQuestion'
 import ConfirmationScreen from '@/components/ConfirmationScreen'
+import ImageDropZone from '@/components/ImageDropZone'
 
-type FormStep = 'purchase-location' | 'nps' | 'feedback' | 'skin-concern' | 'email' | 'confirmation'
+type FormStep = 'purchase-location' | 'nps' | 'feedback' | 'photos' | 'skin-concern' | 'email' | 'confirmation'
 
 export default function FormPage() {
   const [currentStep, setCurrentStep] = useState<FormStep>('purchase-location')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [npsScore, setNpsScore] = useState<number | null>(null)
+  const [beforePhoto, setBeforePhoto] = useState<File | null>(null)
+  const [afterPhoto, setAfterPhoto] = useState<File | null>(null)
 
   const {
     control,
@@ -49,7 +52,7 @@ export default function FormPage() {
   }
 
   const handleNext = () => {
-    const steps: FormStep[] = ['purchase-location', 'nps', 'feedback', 'skin-concern', 'email', 'confirmation']
+    const steps: FormStep[] = ['purchase-location', 'nps', 'feedback', 'photos', 'skin-concern', 'email', 'confirmation']
     const currentIndex = steps.indexOf(currentStep)
     
     if (currentIndex < steps.length - 1) {
@@ -58,7 +61,7 @@ export default function FormPage() {
   }
 
   const handleBack = () => {
-    const steps: FormStep[] = ['purchase-location', 'nps', 'feedback', 'skin-concern', 'email', 'confirmation']
+    const steps: FormStep[] = ['purchase-location', 'nps', 'feedback', 'photos', 'skin-concern', 'email', 'confirmation']
     const currentIndex = steps.indexOf(currentStep)
     
     if (currentIndex > 0) {
@@ -69,12 +72,18 @@ export default function FormPage() {
   const onSubmit = async (data: FormSchema) => {
     setIsSubmitting(true)
     try {
+      const formData = new FormData()
+      formData.append('purchaseLocation', data.purchaseLocation)
+      formData.append('npsScore', String(data.npsScore))
+      formData.append('feedbackDetail', data.feedbackDetail)
+      formData.append('skinConcern', data.skinConcern)
+      formData.append('emailAddress', data.emailAddress)
+      if (beforePhoto) formData.append('beforePhoto', beforePhoto)
+      if (afterPhoto) formData.append('afterPhoto', afterPhoto)
+
       const response = await fetch('/api/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        body: formData,
       })
 
       if (response.ok) {
@@ -95,7 +104,7 @@ export default function FormPage() {
       case 'purchase-location':
         return (
           <FormQuestion
-            title="Where did you purchase your Radiant C Serum?"
+            title="Where did you purchase your Radiant Renewal Duo?"
             onNext={handleNext}
             canProceed={!!watchedValues.purchaseLocation}
           >
@@ -129,7 +138,7 @@ export default function FormPage() {
       case 'nps':
         return (
           <FormQuestion
-            title="On a scale of 0-10, how likely are you to recommend the Radiant C Serum to a friend?"
+            title="On a scale of 0-10, how likely are you to recommend our 14‑Day Radiant Renewal to a friend?"
             onNext={handleNext}
             canProceed={npsScore !== null}
           >
@@ -169,10 +178,35 @@ export default function FormPage() {
           </FormQuestion>
         )
 
+      case 'photos':
+        return (
+          <FormQuestion
+            title="Share your journey: add your Before and After photos"
+            onNext={handleNext}
+            canProceed={true}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <ImageDropZone
+                label="Before photo"
+                file={beforePhoto}
+                onFileChange={setBeforePhoto}
+              />
+              <ImageDropZone
+                label="After photo"
+                file={afterPhoto}
+                onFileChange={setAfterPhoto}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              By uploading images, you confirm you have rights to share them. We may use them for anonymized product research. Uploads are optional.
+            </p>
+          </FormQuestion>
+        )
+
       case 'skin-concern':
         return (
           <FormQuestion
-            title="To better personalize your journey, what is your primary skin concern?"
+            title="To personalize your regimen, what is your primary skin concern?"
             onNext={handleNext}
             canProceed={!!watchedValues.skinConcern}
           >
@@ -206,7 +240,7 @@ export default function FormPage() {
       case 'email':
         return (
           <FormQuestion
-            title="Become a member of the Elysian Circle. You'll receive early access to new formulas, complimentary shipping, and a special gift on your birthday. Please enter your email to join."
+            title="Join the Elysian Circle for your Radiant Renewal recap and exclusive care tips. Enter your email to join."
             onNext={handleSubmit(onSubmit)}
             canProceed={!!watchedValues.emailAddress && !errors.emailAddress}
             isLoading={isSubmitting}
