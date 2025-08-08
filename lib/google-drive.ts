@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import { Readable } from 'stream'
 
 const auth = new google.auth.GoogleAuth({
   credentials: {
@@ -22,6 +23,7 @@ export async function uploadImageToDrive(params: {
   const buffer = Buffer.from(await file.arrayBuffer())
 
   const createRes = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name: filename,
       parents: folderId ? [folderId] : undefined,
@@ -29,7 +31,7 @@ export async function uploadImageToDrive(params: {
     },
     media: {
       mimeType,
-      body: BufferToStream(buffer),
+      body: Readable.from(buffer),
     },
     fields: 'id, webViewLink, webContentLink',
   })
@@ -40,22 +42,17 @@ export async function uploadImageToDrive(params: {
   // Make file link-shareable (anyone with link can view)
   await drive.permissions.create({
     fileId,
+    supportsAllDrives: true,
     requestBody: {
       role: 'reader',
       type: 'anyone',
     },
   })
 
-  const { data } = await drive.files.get({ fileId, fields: 'webViewLink, webContentLink' })
+  const { data } = await drive.files.get({ fileId, supportsAllDrives: true, fields: 'webViewLink, webContentLink' })
   return data.webViewLink || data.webContentLink || `https://drive.google.com/file/d/${fileId}/view`
 }
 
-function BufferToStream(buffer: Buffer) {
-  const readable = new (require('stream').Readable)()
-  readable._read = () => {}
-  readable.push(buffer)
-  readable.push(null)
-  return readable
-}
+// Removed custom BufferToStream in favor of built-in Readable.from
 
 

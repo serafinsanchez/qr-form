@@ -14,6 +14,8 @@ export interface FormSubmission {
   skinConcern: string
   emailAddress: string
   joinedLoyalty: boolean
+  beforeUrl?: string | null
+  afterUrl?: string | null
 }
 
 export const PURCHASE_LOCATIONS = [

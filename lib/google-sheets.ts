@@ -28,12 +28,14 @@ export async function submitToGoogleSheets(data: FormSubmission): Promise<void> 
         data.skinConcern,
         data.emailAddress,
         data.joinedLoyalty ? 'Yes' : 'No',
+        data.beforeUrl || '',
+        data.afterUrl || '',
       ],
     ]
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A:G', // Adjust range based on your sheet structure
+      range: 'Sheet1!A:I', // A:G + Before_URL (H) + After_URL (I)
       valueInputOption: 'RAW',
       requestBody: {
         values,
@@ -44,3 +46,33 @@ export async function submitToGoogleSheets(data: FormSubmission): Promise<void> 
     throw new Error('Failed to submit form data')
   }
 } 
+
+export async function fetchSubmissions(limit: number = 100): Promise<FormSubmission[]> {
+  const sheetId = process.env.GOOGLE_SHEET_ID
+  if (!sheetId) {
+    throw new Error('Google Sheet ID not configured')
+  }
+
+  const range = 'Sheet1!A:I'
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range,
+    majorDimension: 'ROWS',
+  })
+
+  const rows = res.data.values || []
+  // Assume the first row is header
+  const dataRows = rows.slice(1).reverse().slice(0, limit) // latest first
+
+  return dataRows.map((r) => ({
+    timestamp: r[0] || '',
+    purchaseLocation: r[1] || '',
+    npsScore: Number(r[2] || 0),
+    feedbackDetail: r[3] || '',
+    skinConcern: r[4] || '',
+    emailAddress: r[5] || '',
+    joinedLoyalty: (r[6] || '').toLowerCase() === 'yes',
+    beforeUrl: r[7] || null,
+    afterUrl: r[8] || null,
+  }))
+}
