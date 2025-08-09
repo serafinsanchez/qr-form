@@ -71,6 +71,8 @@ export default function FormPage() {
 
   const onSubmit = async (data: FormSchema) => {
     setIsSubmitting(true)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
     try {
       const formData = new FormData()
       formData.append('purchaseLocation', data.purchaseLocation)
@@ -84,6 +86,7 @@ export default function FormPage() {
       const response = await fetch('/api/submit', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
 
       if (response.ok) {
@@ -95,6 +98,7 @@ export default function FormPage() {
     } catch (error) {
       alert('Something went wrong. Please try again.')
     } finally {
+      clearTimeout(timeoutId)
       setIsSubmitting(false)
     }
   }
