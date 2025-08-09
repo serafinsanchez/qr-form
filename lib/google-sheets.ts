@@ -33,7 +33,7 @@ export async function submitToGoogleSheets(data: FormSubmission): Promise<void> 
       ],
     ]
 
-    await sheets.spreadsheets.values.append({
+    const appendPromise = sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: 'Sheet1!A:I', // A:G + Before_URL (H) + After_URL (I)
       valueInputOption: 'RAW',
@@ -41,11 +41,17 @@ export async function submitToGoogleSheets(data: FormSubmission): Promise<void> 
         values,
       },
     })
+
+    // Timeout after 12s to prevent hanging
+    await Promise.race([
+      appendPromise,
+      new Promise((_resolve, reject) => setTimeout(() => reject(new Error('Google Sheets timeout')), 12000)),
+    ])
   } catch (error) {
     console.error('Error submitting to Google Sheets:', error)
     throw new Error('Failed to submit form data')
   }
-} 
+}
 
 export async function fetchSubmissions(limit: number = 100): Promise<FormSubmission[]> {
   const sheetId = process.env.GOOGLE_SHEET_ID
