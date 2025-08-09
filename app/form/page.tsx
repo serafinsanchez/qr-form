@@ -92,11 +92,34 @@ export default function FormPage() {
       if (response.ok) {
         setCurrentStep('confirmation')
       } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Something went wrong. Please try again.')
+        const status = response.status
+        const contentType = response.headers.get('content-type') || ''
+        let message = ''
+        try {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json()
+            message = errorData?.message || ''
+          } else {
+            const text = await response.text()
+            message = text?.slice(0, 300)
+          }
+        } catch {
+          // fall through to default messages
+        }
+
+        if (!message) {
+          if (status === 413) message = 'Upload too large. Please use images under 4 MB each.'
+          else if (status === 504) message = 'The server took too long to respond. Please try again.'
+          else message = 'Something went wrong. Please try again.'
+        }
+        alert(message)
       }
-    } catch (error) {
-      alert('Something went wrong. Please try again.')
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        alert('Request timed out. Please try again.')
+      } else {
+        alert('Something went wrong. Please try again.')
+      }
     } finally {
       clearTimeout(timeoutId)
       setIsSubmitting(false)

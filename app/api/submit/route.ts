@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+export const maxDuration = 15
 import { NextRequest, NextResponse } from 'next/server'
 import { submitToGoogleSheets } from '@/lib/google-sheets'
 import { formSchema } from '@/lib/validation'
@@ -29,48 +31,59 @@ export async function POST(request: NextRequest) {
         emailAddress,
       })
 
-      // Optional image uploads to Drive
+      // Optional image uploads to Drive/GCS
       const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
       const beforeFile = form.get('beforePhoto') as unknown as File | null
       const afterFile = form.get('afterPhoto') as unknown as File | null
 
       try {
         const useGCS = process.env.USE_GCS === 'true'
-        if (useGCS) {
-          const bucket = process.env.GCS_BUCKET_NAME
-          if (!bucket) throw new Error('GCS_BUCKET_NAME is not set')
+        const uploadBefore = async () => {
           if (beforeFile && typeof beforeFile === 'object' && (beforeFile as any).arrayBuffer) {
-            beforeUrl = await uploadImageToGCS({
-              file: beforeFile,
-              bucketName: bucket,
-              destination: `uploads/before_${Date.now()}.jpg`,
-            })
-          }
-          if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
-            afterUrl = await uploadImageToGCS({
-              file: afterFile,
-              bucketName: bucket,
-              destination: `uploads/after_${Date.now()}.jpg`,
-            })
-          }
-        } else {
-          if (beforeFile && typeof beforeFile === 'object' && (beforeFile as any).arrayBuffer) {
-            beforeUrl = await uploadImageToDrive({
-              file: beforeFile,
-              filename: `before_${Date.now()}.jpg`,
-              mimeType: (beforeFile as any).type || 'image/jpeg',
-              folderId,
-            })
-          }
-          if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
-            afterUrl = await uploadImageToDrive({
-              file: afterFile,
-              filename: `after_${Date.now()}.jpg`,
-              mimeType: (afterFile as any).type || 'image/jpeg',
-              folderId,
-            })
+            if (useGCS) {
+              const bucket = process.env.GCS_BUCKET_NAME
+              if (!bucket) throw new Error('GCS_BUCKET_NAME is not set')
+              beforeUrl = await uploadImageToGCS({
+                file: beforeFile,
+                bucketName: bucket,
+                destination: `uploads/before_${Date.now()}.jpg`,
+              })
+            } else {
+              beforeUrl = await uploadImageToDrive({
+                file: beforeFile,
+                filename: `before_${Date.now()}.jpg`,
+                mimeType: (beforeFile as any).type || 'image/jpeg',
+                folderId,
+              })
+            }
           }
         }
+        const uploadAfter = async () => {
+          if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
+            if (useGCS) {
+              const bucket = process.env.GCS_BUCKET_NAME
+              if (!bucket) throw new Error('GCS_BUCKET_NAME is not set')
+              afterUrl = await uploadImageToGCS({
+                file: afterFile,
+                bucketName: bucket,
+                destination: `uploads/after_${Date.now()}.jpg`,
+              })
+            } else {
+              afterUrl = await uploadImageToDrive({
+                file: afterFile,
+                filename: `after_${Date.now()}.jpg`,
+                mimeType: (afterFile as any).type || 'image/jpeg',
+                folderId,
+              })
+            }
+          }
+        }
+
+        // Run image uploads concurrently with an overall guard timeout
+        await Promise.race([
+          Promise.all([uploadBefore(), uploadAfter()]),
+          new Promise((_r, reject) => setTimeout(() => reject(new Error('Image upload timeout')), 10000)),
+        ])
       } catch (e) {
         console.warn('Image upload skipped or failed:', e)
       }
@@ -108,8 +121,14 @@ export async function POST(request: NextRequest) {
     console.error('Form submission error:', error)
     
     if (error instanceof Error) {
+      // Provide slightly clearer messages for common misconfigurations
+      const msg = /Sheet ID not configured/i.test(error.message)
+        ? 'Server is missing Google Sheet configuration.'
+        : /invalid_grant|unauthorized|credentials/i.test(error.message)
+        ? 'Server credentials are invalid or missing.'
+        : error.message
       return NextResponse.json(
-        { success: false, message: error.message },
+        { success: false, message: msg },
         { status: 400 }
       )
     }
