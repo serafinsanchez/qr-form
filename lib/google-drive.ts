@@ -33,7 +33,7 @@ export async function uploadImageToDrive(params: {
       mimeType,
       body: Readable.from(buffer),
     },
-    fields: 'id, webViewLink, webContentLink',
+    fields: 'id',
   })
 
   const fileId = createRes.data.id
@@ -49,8 +49,9 @@ export async function uploadImageToDrive(params: {
     },
   })
 
-  const { data } = await drive.files.get({ fileId, supportsAllDrives: true, fields: 'webViewLink, webContentLink' })
-  return data.webViewLink || data.webContentLink || `https://drive.google.com/file/d/${fileId}/view`
+  // Return an embed-friendly URL that renders inline in <img>
+  // Example: https://drive.google.com/uc?export=view&id=<FILE_ID>
+  return `https://drive.google.com/uc?export=view&id=${fileId}`
 }
 
 // Removed custom BufferToStream in favor of built-in Readable.from
