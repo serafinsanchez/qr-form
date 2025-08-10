@@ -34,12 +34,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'GCS_BUCKET_NAME is not set' }, { status: 500 })
     }
 
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL
+    const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY
+    const projectId = process.env.GOOGLE_PROJECT_ID
+
+    if (!clientEmail || !privateKeyRaw || !projectId) {
+      const missing: string[] = []
+      if (!clientEmail) missing.push('GOOGLE_CLIENT_EMAIL')
+      if (!privateKeyRaw) missing.push('GOOGLE_PRIVATE_KEY')
+      if (!projectId) missing.push('GOOGLE_PROJECT_ID')
+      return NextResponse.json({ message: `Missing required Google env vars: ${missing.join(', ')}` }, { status: 500 })
+    }
+
     const storage = new Storage({
       credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        client_email: clientEmail,
+        private_key: privateKeyRaw.replace(/\\n/g, '\n'),
       },
-      projectId: process.env.GOOGLE_PROJECT_ID,
+      projectId,
     })
 
     const bucket = storage.bucket(bucketName)

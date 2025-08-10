@@ -75,7 +75,20 @@ export default function FormPage() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ filename: file.name, contentType: file.type || 'application/octet-stream', kind }),
     })
-    if (!res.ok) throw new Error('Failed to get upload URL')
+    if (!res.ok) {
+      try {
+        const contentType = res.headers.get('content-type') || ''
+        if (contentType.includes('application/json')) {
+          const data = await res.json()
+          throw new Error(data?.message || 'Failed to get upload URL')
+        } else {
+          const text = await res.text()
+          throw new Error(text || 'Failed to get upload URL')
+        }
+      } catch (e: any) {
+        throw new Error(e?.message || 'Failed to get upload URL')
+      }
+    }
     const { uploadUrl, viewUrl } = await res.json()
 
     const putRes = await fetch(uploadUrl, {
