@@ -56,6 +56,8 @@ A beautiful, Typeform-style feedback collection system for Elysian Fields' post-
    GOOGLE_SHEET_ID=your-sheet-id
    GOOGLE_CLIENT_EMAIL=your-service-account-email
    GOOGLE_PRIVATE_KEY="your-private-key"
+   GCS_BUCKET_NAME=your-gcs-bucket-name
+   GCS_PUBLIC_READ=true
    ```
 
 4. **Run the development server**
@@ -109,6 +111,8 @@ Make sure to set these in your Vercel project settings:
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_CLIENT_EMAIL`
 - `GOOGLE_PRIVATE_KEY`
+- `GCS_BUCKET_NAME`
+- `GCS_PUBLIC_READ`
 
 ## Project Structure
 
