@@ -69,32 +69,86 @@ export default function FormPage() {
     }
   }
 
+  async function uploadViaSignedUrl(file: File, kind: 'before' | 'after'): Promise<string> {
+    const res = await fetch('/api/upload-url', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, contentType: file.type || 'application/octet-stream', kind }),
+    })
+    if (!res.ok) throw new Error('Failed to get upload URL')
+    const { uploadUrl, viewUrl } = await res.json()
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'content-type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    if (!putRes.ok) throw new Error('Upload failed')
+
+    return viewUrl
+  }
+
   const onSubmit = async (data: FormSchema) => {
     setIsSubmitting(true)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
     try {
-      const formData = new FormData()
-      formData.append('purchaseLocation', data.purchaseLocation)
-      formData.append('npsScore', String(data.npsScore))
-      formData.append('feedbackDetail', data.feedbackDetail)
-      formData.append('skinConcern', data.skinConcern)
-      formData.append('emailAddress', data.emailAddress)
-      if (beforePhoto) formData.append('beforePhoto', beforePhoto)
-      if (afterPhoto) formData.append('afterPhoto', afterPhoto)
+      let beforeUrl: string | undefined
+      let afterUrl: string | undefined
+
+      if (beforePhoto) {
+        beforeUrl = await uploadViaSignedUrl(beforePhoto, 'before')
+      }
+      if (afterPhoto) {
+        afterUrl = await uploadViaSignedUrl(afterPhoto, 'after')
+      }
 
       const response = await fetch('/api/submit', {
         method: 'POST',
-        body: formData,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          purchaseLocation: data.purchaseLocation,
+          npsScore: data.npsScore,
+          feedbackDetail: data.feedbackDetail,
+          skinConcern: data.skinConcern,
+          emailAddress: data.emailAddress,
+          beforeUrl: beforeUrl || null,
+          afterUrl: afterUrl || null,
+        }),
+        signal: controller.signal,
       })
 
       if (response.ok) {
         setCurrentStep('confirmation')
       } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Something went wrong. Please try again.')
+        const status = response.status
+        const contentType = response.headers.get('content-type') || ''
+        let message = ''
+        try {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json()
+            message = errorData?.message || ''
+          } else {
+            const text = await response.text()
+            message = text?.slice(0, 300)
+          }
+        } catch {}
+
+        if (!message) {
+          if (status === 413) message = 'Upload too large. Please use images under 4 MB each.'
+          else if (status === 504) message = 'The server took too long to respond. Please try again.'
+          else message = 'Something went wrong. Please try again.'
+        }
+        alert(message)
       }
-    } catch (error) {
-      alert('Something went wrong. Please try again.')
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        alert('Request timed out. Please try again.')
+      } else {
+        alert(error?.message || 'Something went wrong. Please try again.')
+      }
     } finally {
+      clearTimeout(timeoutId)
       setIsSubmitting(false)
     }
   }
