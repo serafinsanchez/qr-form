@@ -15,19 +15,33 @@ export async function uploadImageToInstantDB(params: {
   const { file, filename } = params
 
   try {
-    // Convert File/Blob to ArrayBuffer then to Buffer
+    // Convert File/Blob to ArrayBuffer then to Buffer for admin SDK
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     
     // Upload file to InstantDB using admin SDK
-    await db.storage.upload(filename, buffer, {
+    const uploadResponse = await db.storage.uploadFile(filename, buffer, {
       contentType: file.type || 'image/jpeg',
     })
     
-    // Generate the public URL based on InstantDB storage pattern
-    const publicUrl = `https://storage.instantdb.com/${process.env.INSTANTDB_PUBLIC_APP_ID}/${filename}`
-    console.log('Successfully uploaded image to InstantDB:', filename)
-    return publicUrl
+    // Query the uploaded file to get its metadata including URL
+    const filesQuery = await db.query({
+      $files: {
+        $: {
+          where: { path: filename }
+        }
+      }
+    })
+    
+    if (filesQuery.$files && filesQuery.$files.length > 0) {
+      const uploadedFile = filesQuery.$files[0]
+      console.log('Successfully uploaded image to InstantDB:', filename)
+      return uploadedFile.url
+    }
+    
+    // Fallback if query fails
+    console.log('Upload succeeded but could not retrieve URL for:', filename)
+    return `https://storage.instantdb.com/${process.env.INSTANTDB_PUBLIC_APP_ID}/${filename}`
   } catch (error) {
     console.error('Error uploading to InstantDB:', error)
     
@@ -67,30 +81,32 @@ export async function submitToInstantDB(data: FormSubmission): Promise<void> {
 // Fetch submissions from InstantDB
 export async function fetchSubmissions(limit: number = 100): Promise<FormSubmission[]> {
   try {
-    // Query submissions from InstantDB
+    // Query submissions from InstantDB with ordering
     const query = await db.query({
-      submissions: {}
+      submissions: {
+        $: {
+          order: { createdAt: 'desc' },
+          limit: limit
+        }
+      }
     })
     
     if (!query.submissions) {
       return []
     }
     
-    // Sort by createdAt descending (most recent first) and limit results
-    const submissions = query.submissions
-      .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0))
-      .slice(0, limit)
-      .map((submission: any) => ({
-        timestamp: submission.timestamp || '',
-        purchaseLocation: submission.purchaseLocation || '',
-        npsScore: submission.npsScore || 0,
-        feedbackDetail: submission.feedbackDetail || '',
-        skinConcern: submission.skinConcern || '',
-        emailAddress: submission.emailAddress || '',
-        joinedLoyalty: submission.joinedLoyalty || false,
-        beforeUrl: submission.beforeUrl || null,
-        afterUrl: submission.afterUrl || null,
-      }))
+    // Map the submissions to match our FormSubmission interface
+    const submissions = query.submissions.map((submission: any) => ({
+      timestamp: submission.timestamp || '',
+      purchaseLocation: submission.purchaseLocation || '',
+      npsScore: submission.npsScore || 0,
+      feedbackDetail: submission.feedbackDetail || '',
+      skinConcern: submission.skinConcern || '',
+      emailAddress: submission.emailAddress || '',
+      joinedLoyalty: submission.joinedLoyalty || false,
+      beforeUrl: submission.beforeUrl || null,
+      afterUrl: submission.afterUrl || null,
+    }))
     
     console.log(`Fetched ${submissions.length} submissions from InstantDB`)
     return submissions
