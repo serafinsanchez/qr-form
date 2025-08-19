@@ -69,54 +69,48 @@ export default function FormPage() {
     }
   }
 
-  async function uploadViaSignedUrl(file: File, kind: 'before' | 'after'): Promise<string> {
-    const res = await fetch('/api/upload-url', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, contentType: file.type || 'application/octet-stream', kind }),
-    })
-    if (!res.ok) throw new Error('Failed to get upload URL')
-    const { uploadUrl, viewUrl } = await res.json()
 
-    const putRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'content-type': file.type || 'application/octet-stream' },
-      body: file,
-    })
-    if (!putRes.ok) throw new Error('Upload failed')
-
-    return viewUrl
-  }
 
   const onSubmit = async (data: FormSchema) => {
     setIsSubmitting(true)
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 20000)
+    
     try {
-      let beforeUrl: string | undefined
-      let afterUrl: string | undefined
+      let response: Response
 
-      if (beforePhoto) {
-        beforeUrl = await uploadViaSignedUrl(beforePhoto, 'before')
+      // Use FormData when images are present to allow server-side InstantDB upload
+      if (beforePhoto || afterPhoto) {
+        const formData = new FormData()
+        formData.append('purchaseLocation', data.purchaseLocation)
+        formData.append('npsScore', data.npsScore.toString())
+        formData.append('feedbackDetail', data.feedbackDetail)
+        formData.append('skinConcern', data.skinConcern)
+        formData.append('emailAddress', data.emailAddress)
+        
+        if (beforePhoto) formData.append('beforePhoto', beforePhoto)
+        if (afterPhoto) formData.append('afterPhoto', afterPhoto)
+        
+        response = await fetch('/api/submit', {
+          method: 'POST',
+          body: formData, // No Content-Type header needed for FormData
+          signal: controller.signal,
+        })
+      } else {
+        // Use JSON for submissions without images
+        response = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            purchaseLocation: data.purchaseLocation,
+            npsScore: data.npsScore,
+            feedbackDetail: data.feedbackDetail,
+            skinConcern: data.skinConcern,
+            emailAddress: data.emailAddress,
+          }),
+          signal: controller.signal,
+        })
       }
-      if (afterPhoto) {
-        afterUrl = await uploadViaSignedUrl(afterPhoto, 'after')
-      }
-
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          purchaseLocation: data.purchaseLocation,
-          npsScore: data.npsScore,
-          feedbackDetail: data.feedbackDetail,
-          skinConcern: data.skinConcern,
-          emailAddress: data.emailAddress,
-          beforeUrl: beforeUrl || null,
-          afterUrl: afterUrl || null,
-        }),
-        signal: controller.signal,
-      })
 
       if (response.ok) {
         setCurrentStep('confirmation')
