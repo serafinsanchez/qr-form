@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { submitToGoogleSheets } from '@/lib/google-sheets'
+import { submitToInstantDB, uploadImageToInstantDB } from '@/lib/instantdb-server'
 import { formSchema } from '@/lib/validation'
 import { FormSubmission } from '@/lib/types'
-import { uploadImageToDrive } from '@/lib/google-drive'
-import { uploadImageToGCS } from '@/lib/google-cloud-storage'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,47 +27,22 @@ export async function POST(request: NextRequest) {
         emailAddress,
       })
 
-      // Optional image uploads to Drive
-      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+      // Optional image uploads to InstantDB
       const beforeFile = form.get('beforePhoto') as unknown as File | null
       const afterFile = form.get('afterPhoto') as unknown as File | null
 
       try {
-        const useGCS = process.env.USE_GCS === 'true'
-        if (useGCS) {
-          const bucket = process.env.GCS_BUCKET_NAME
-          if (!bucket) throw new Error('GCS_BUCKET_NAME is not set')
-          if (beforeFile && typeof beforeFile === 'object' && (beforeFile as any).arrayBuffer) {
-            beforeUrl = await uploadImageToGCS({
-              file: beforeFile,
-              bucketName: bucket,
-              destination: `uploads/before_${Date.now()}.jpg`,
-            })
-          }
-          if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
-            afterUrl = await uploadImageToGCS({
-              file: afterFile,
-              bucketName: bucket,
-              destination: `uploads/after_${Date.now()}.jpg`,
-            })
-          }
-        } else {
-          if (beforeFile && typeof beforeFile === 'object' && (beforeFile as any).arrayBuffer) {
-            beforeUrl = await uploadImageToDrive({
-              file: beforeFile,
-              filename: `before_${Date.now()}.jpg`,
-              mimeType: (beforeFile as any).type || 'image/jpeg',
-              folderId,
-            })
-          }
-          if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
-            afterUrl = await uploadImageToDrive({
-              file: afterFile,
-              filename: `after_${Date.now()}.jpg`,
-              mimeType: (afterFile as any).type || 'image/jpeg',
-              folderId,
-            })
-          }
+        if (beforeFile && typeof beforeFile === 'object' && (beforeFile as any).arrayBuffer) {
+          beforeUrl = await uploadImageToInstantDB({
+            file: beforeFile,
+            filename: `before_${Date.now()}.jpg`,
+          })
+        }
+        if (afterFile && typeof afterFile === 'object' && (afterFile as any).arrayBuffer) {
+          afterUrl = await uploadImageToInstantDB({
+            file: afterFile,
+            filename: `after_${Date.now()}.jpg`,
+          })
         }
       } catch (e) {
         console.warn('Image upload skipped or failed:', e)
@@ -96,8 +69,8 @@ export async function POST(request: NextRequest) {
       afterUrl,
     }
     
-    // Submit to Google Sheets
-    await submitToGoogleSheets(submission)
+    // Submit to InstantDB
+    await submitToInstantDB(submission)
     
     return NextResponse.json({ 
       success: true, 

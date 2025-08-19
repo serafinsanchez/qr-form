@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import SubmissionsTable from './SubmissionsTable'
 import { FormSubmission } from '@/lib/types'
-import { getViewUrlForGcs } from '@/lib/gcs-url'
 
 type ViewMode = 'grid' | 'list'
 
@@ -21,8 +20,8 @@ export default function AdminSubmissionsClient({ submissions }: AdminSubmissions
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {submissions.map((s, idx) => {
-          const beforeUrl = s.beforeUrl ? getViewUrlForGcs(s.beforeUrl) : null
-          const afterUrl = s.afterUrl ? getViewUrlForGcs(s.afterUrl) : null
+          const beforeUrl = s.beforeUrl || null
+          const afterUrl = s.afterUrl || null
           const nps = Number.isFinite(s.npsScore) ? s.npsScore : null
 
         return (

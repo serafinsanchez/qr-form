@@ -1,4 +1,4 @@
-import { fetchSubmissions } from '@/lib/google-sheets'
+import { fetchSubmissions } from '@/lib/instantdb-server'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import AdminSubmissionsClient from '@/components/AdminSubmissionsClient'
